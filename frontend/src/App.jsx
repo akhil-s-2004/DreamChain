@@ -508,6 +508,10 @@ function App() {
   const [message, setMessage] = useState('Connect your wallet to begin.');
   const [isLoading, setIsLoading] = useState(false);
 
+  // New state for displaying dreams
+  const [myDreams, setMyDreams] = useState([]);
+  const [isFetching, setIsFetching] = useState(false);
+
   // Helper function to connect wallet
   const connectWallet = async () => {
     try {
@@ -558,49 +562,134 @@ function App() {
       const ipfsHash = pinataResponse.data.IpfsHash;
       const tokenURI = `ipfs://${ipfsHash}`;
       setMessage('Dream uploaded! Now minting NFT...');
+
       // 2. Mint the NFT on the blockchain
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
       const dreamChainContract = new ethers.Contract(contractAddress, contractABI, signer);
 
-      //const transaction = await dreamChainContract.mintDream(ipfsUrl);
       const transaction = await dreamChainContract.mintDream(tokenURI);
-      await transaction.wait(); // Wait for the transaction to be mined
+      await transaction.wait();
 
       setMessage(`NFT minted successfully! Transaction: ${transaction.hash}`);
-      setDream(''); // Clear the textarea
+      setDream('');
     } catch (error) {
       console.error('Minting failed', error);
-      setMessage('Minting failed. See console for details.');
+      setMessage('Minting failed. Check the console for details.');
     } finally {
       setIsLoading(false);
     }
   };
 
+  // --- NEW AND IMPROVED FUNCTION TO FETCH YOUR DREAMS ---
+  const fetchMyDreams = async () => {
+      if (!account) {
+          setMessage("Please connect your wallet to see your dreams.");
+          return;
+      }
+      setIsFetching(true);
+      setMyDreams([]); 
+      setMessage("Searching your transaction history for dreams...");
+      try {
+          const provider = new ethers.BrowserProvider(window.ethereum);
+          const contract = new ethers.Contract(contractAddress, contractABI, provider);
+
+          // Create a filter to find all 'Transfer' events where the 'to' address is the current user
+          const filter = contract.filters.Transfer(null, account);
+          
+          // Query the blockchain for these historical events
+          const events = await contract.queryFilter(filter, 0, 'latest');
+
+          if (events.length === 0) {
+              setMessage("Could not find any dreams minted to this wallet. Mint one first!");
+              setIsFetching(false);
+              return;
+          }
+
+          // Fetch metadata for each owned token in parallel
+          const dreamsPromises = events.map(async (event) => {
+              const tokenId = event.args.tokenId.toString();
+              try {
+                  const tokenURI = await contract.tokenURI(tokenId);
+                  const metadataUrl = tokenURI.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/');
+                  const metadataResponse = await axios.get(metadataUrl);
+                  if (metadataResponse.data && metadataResponse.data.description) {
+                    return {
+                        id: tokenId,
+                        description: metadataResponse.data.description
+                    };
+                  }
+              } catch (e) {
+                  console.error(`Could not fetch metadata for token ${tokenId}`, e);
+                  return null; // Return null for failed fetches
+              }
+          });
+
+          const dreams = (await Promise.all(dreamsPromises)).filter(dream => dream !== null);
+          
+          setMyDreams(dreams);
+
+          if (dreams.length > 0) {
+            setMessage(`Found ${dreams.length} dream(s)!`);
+          } else {
+            setMessage("Found your mint transactions, but could not load dream data from IPFS. Please try again.");
+          }
+
+      } catch (error) {
+          console.error("Failed to fetch dreams:", error);
+          setMessage("An error occurred while fetching dreams. See console.");
+      } finally {
+          setIsFetching(false);
+      }
+  };
+
+
   return (
     <div className="container">
-      <h1>🌙 DreamChain</h1>
-      <p>Immortalize your dreams on the blockchain.</p>
+      <div className="mint-section">
+        <h1>🌙 DreamChain</h1>
+        <p>Immortalize your dreams on the blockchain.</p>
 
-      {account ? (
-        <p className="wallet-info">Connected: {`${account.substring(0, 6)}...${account.substring(account.length - 4)}`}</p>
-      ) : (
-        <button onClick={connectWallet}>Connect Wallet</button>
-      )}
+        {account ? (
+          <p className="wallet-info">Connected: {`${account.substring(0, 6)}...${account.substring(account.length - 4)}`}</p>
+        ) : (
+          <button onClick={connectWallet}>Connect Wallet</button>
+        )}
 
-      <textarea
-        value={dream}
-        onChange={(e) => setDream(e.target.value)}
-        placeholder="Last night, I dreamt of a flying pizza that delivered tacos..."
-        rows="5"
-        disabled={!account || isLoading}
-      />
+        <textarea
+          value={dream}
+          onChange={(e) => setDream(e.target.value)}
+          placeholder="Last night, I dreamt of a flying pizza that delivered tacos..."
+          rows="5"
+          disabled={!account || isLoading}
+        />
 
-      <button onClick={mintDreamNFT} disabled={!account || isLoading}>
-        {isLoading ? 'Minting...' : 'Mint as NFT'}
-      </button>
+        <button onClick={mintDreamNFT} disabled={!account || isLoading}>
+          {isLoading ? 'Minting...' : 'Mint as NFT'}
+        </button>
 
-      <p className="message">{message}</p>
+        <p className="message">{message}</p>
+      </div>
+
+      {/* --- NEW SECTION TO DISPLAY DREAMS --- */}
+      <div className="dreams-gallery">
+        <h2>My Minted Dreams</h2>
+        <button onClick={fetchMyDreams} disabled={isFetching || !account}>
+            {isFetching ? 'Fetching...' : 'Fetch My Dreams'}
+        </button>
+        
+        {myDreams.length > 0 ? (
+            <ul>
+                {myDreams.map(dream => (
+                    <li key={dream.id}>"{dream.description}"</li>
+                ))}
+            </ul>
+        ) : (
+            <p className="no-dreams-message">
+                {isFetching ? 'Searching...' : 'No dreams fetched yet. Click the button above!'}
+            </p>
+        )}
+      </div>
     </div>
   );
 }
