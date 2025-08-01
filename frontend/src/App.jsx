@@ -515,10 +515,6 @@ function App() {
   const [allDreams, setAllDreams] = useState([]);
   const [isFetchingAll, setIsFetchingAll] = useState(false);
 
-  // New state for AI suggestions
-  const [suggestions, setSuggestions] = useState([]);
-  const [isSuggesting, setIsSuggesting] = useState(false);
-
   useEffect(() => {
     fetchAllDreams();
   }, []);
@@ -588,7 +584,6 @@ function App() {
       setMessage(`NFT minted successfully! Transaction: ${transaction.hash}`);
       setDream('');
       setTitle('');
-      setSuggestions([]); // Clear suggestions after minting
       fetchAllDreams();
       if (account) {
         fetchMyDreams();
@@ -660,51 +655,6 @@ function App() {
     }
   };
 
-  // --- NEW AI SUGGESTION FUNCTION ---
-  const getDreamSuggestions = async () => {
-    if (!dream) {
-      setMessage("Start writing your dream to get suggestions.");
-      return;
-    }
-    setIsSuggesting(true);
-    setSuggestions([]);
-    setMessage("AI is dreaming up some ideas...");
-
-    try {
-        const prompt = `Continue this short dream description in three different creative ways. Keep each continuation short, about one or two sentences. Return the suggestions as a JSON array of strings. The dream so far is: "${dream}"`;
-        
-        const payload = { 
-            contents: [{ role: "user", parts: [{ text: prompt }] }],
-            generationConfig: {
-                responseMimeType: "application/json",
-                responseSchema: { type: "ARRAY", items: { type: "STRING" } }
-            }
-        };
-        const apiKey = ""; // Leave as-is
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-
-        const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) throw new Error(`API request failed with status ${response.status}`);
-
-        const result = await response.json();
-        const suggestionsText = result.candidates[0].content.parts[0].text;
-        const parsedSuggestions = JSON.parse(suggestionsText);
-        setSuggestions(parsedSuggestions);
-        setMessage("Here are some ideas!");
-
-    } catch (error) {
-        console.error("Failed to get AI suggestions:", error);
-        setMessage("Sorry, the AI is sleeping. Please try again.");
-    } finally {
-        setIsSuggesting(false);
-    }
-  };
-
   const DreamCard = ({ dream, isPublic }) => (
     <div className={`dream-card ${isPublic ? 'public-dream' : 'my-dream'}`}>
       <h3 className="dream-title">{dream.name || 'Untitled Dream'}</h3>
@@ -750,25 +700,6 @@ function App() {
               rows="5"
               disabled={!account || isLoading}
             />
-          </div>
-
-          <div className="suggestions-container">
-            <button onClick={getDreamSuggestions} disabled={!account || isSuggesting || !dream} className="suggestion-button">
-              {isSuggesting ? 'Thinking...' : 'Ask AI for Ideas'}
-            </button>
-            {suggestions.length > 0 && (
-              <div className="suggestions-list">
-                {suggestions.map((suggestion, index) => (
-                  <button 
-                    key={index} 
-                    className="suggestion-item"
-                    onClick={() => setDream(prev => `${prev} ${suggestion}`)}
-                  >
-                    {suggestion}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
 
           <button

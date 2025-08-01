@@ -130,47 +130,6 @@ body {
   text-align: center;
 }
 
-/* AI Suggestions Styles */
-.suggestions-container {
-  margin-top: 1.5rem;
-  text-align: left;
-}
-.suggestion-button {
-  background-color: #444;
-  color: #e0e0e0;
-  border: none;
-  padding: 0.6rem 1.2rem;
-  border-radius: 20px;
-  cursor: pointer;
-  font-weight: 600;
-}
-.suggestion-button:disabled {
-  background-color: #333;
-  color: #777;
-  cursor: not-allowed;
-}
-.suggestions-list {
-  margin-top: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-.suggestion-item {
-  background-color: rgba(0, 191, 255, 0.1);
-  border: 1px solid #00bfff;
-  color: #00bfff;
-  text-align: left;
-  width: 100%;
-  padding: 0.8rem 1rem;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  box-sizing: border-box;
-}
-.suggestion-item:hover {
-  background-color: rgba(0, 191, 255, 0.2);
-}
-
 /* Galleries Section */
 .view-switcher {
   display: flex;
