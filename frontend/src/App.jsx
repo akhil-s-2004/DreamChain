@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { ethers } from 'ethers';
 import { NFTStorage, File } from 'nft.storage';
+import axios from 'axios'; 
 import './App.css';
 
 // --- IMPORTANT ---
 // 1. PASTE YOUR DEPLOYED CONTRACT ADDRESS HERE
-const contractAddress = 0x6FD786d570BE23Ba4F92C798fF3Ff039dB9eD205;
+const contractAddress = '0x6FD786d570BE23Ba4F92C798fF3Ff039dB9eD205';
 
 // 2. PASTE YOUR CONTRACT'S ABI HERE
 const contractABI = [
@@ -535,26 +536,35 @@ function App() {
     }
 
     setIsLoading(true);
-    setMessage('Uploading dream to IPFS...');
+    setMessage('Uploading dream to IPFS via Pinata...');
 
     try {
-      // 1. Upload to IPFS using NFT.Storage
-      const nftstorage = new NFTStorage({ token: import.meta.env.VITE_NFT_STORAGE_KEY });
-      const metadata = await nftstorage.store({
-        name: 'A Dream',
-        description: dream,
-        image: new File([], 'dream.png', { type: 'image/png' }) // We just need the metadata
-      });
+      // 1. Upload to IPFS using Pinata
+      const jsonData = {
+        name: "A Dream",
+        description: dream
+      };
+      const pinataResponse = await axios.post(
+        "https://api.pinata.cloud/pinning/pinJSONToIPFS",
+        jsonData,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_PINATA_JWT}`
+          }
+        }
+      );
 
-      const ipfsUrl = metadata.url;
+      const ipfsHash = pinataResponse.data.IpfsHash;
+      const tokenURI = `ipfs://${ipfsHash}`;
       setMessage('Dream uploaded! Now minting NFT...');
-
       // 2. Mint the NFT on the blockchain
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
       const dreamChainContract = new ethers.Contract(contractAddress, contractABI, signer);
 
-      const transaction = await dreamChainContract.mintDream(ipfsUrl);
+      //const transaction = await dreamChainContract.mintDream(ipfsUrl);
+      const transaction = await dreamChainContract.mintDream(tokenURI);
       await transaction.wait(); // Wait for the transaction to be mined
 
       setMessage(`NFT minted successfully! Transaction: ${transaction.hash}`);
