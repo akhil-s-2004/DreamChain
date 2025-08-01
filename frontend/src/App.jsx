@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ethers } from 'ethers';
 import { NFTStorage, File } from 'nft.storage';
 import axios from 'axios'; 
+import './App.css';
 
 // --- IMPORTANT ---
 // 1. PASTE YOUR DEPLOYED CONTRACT ADDRESS HERE
@@ -503,11 +504,9 @@ const contractABI = [
 
 function App() {
   const [dream, setDream] = useState('');
-  const [title, setTitle] = useState(''); // Add state for title
   const [account, setAccount] = useState('');
   const [message, setMessage] = useState('Connect your wallet to begin.');
   const [isLoading, setIsLoading] = useState(false);
-  const [view, setView] = useState('others'); // 'others' or 'my'
 
   // State for displaying dreams
   const [myDreams, setMyDreams] = useState([]);
@@ -522,8 +521,6 @@ function App() {
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
         setAccount(accounts[0]);
         setMessage('Write your dream and mint it as an NFT!');
-        fetchMyDreams(accounts[0]);
-        fetchAllDreams();
       } else {
         setMessage('MetaMask is not installed. Please install it to use this app.');
       }
@@ -535,8 +532,8 @@ function App() {
 
   // Main function to mint the NFT
   const mintDreamNFT = async () => {
-    if (!dream || !title) {
-      setMessage('Please write your dream title and description first!');
+    if (!dream) {
+      setMessage('Please write your dream first!');
       return;
     }
     if (!account) {
@@ -550,7 +547,7 @@ function App() {
     try {
       // 1. Upload metadata to IPFS using Pinata
       const jsonData = {
-        name: title, // Use the title state
+        name: "A Dream",
         description: dream
       };
       const pinataResponse = await axios.post(
@@ -578,9 +575,6 @@ function App() {
 
       setMessage(`NFT minted successfully! Transaction: ${transaction.hash}`);
       setDream('');
-      setTitle('');
-      fetchMyDreams(account);
-      fetchAllDreams();
     } catch (error) {
       console.error('Minting failed', error);
       setMessage('Minting failed. Check the console for details.');
@@ -590,15 +584,15 @@ function App() {
   };
 
   // --- FUNCTION TO FETCH YOUR DREAMS (PRIVATE) ---
-  const fetchMyDreams = async (userAccount = account) => {
-      if (!userAccount) return;
+  const fetchMyDreams = async () => {
+      if (!account) return;
       setIsFetching(true);
       setMyDreams([]); 
       setMessage("Searching your transaction history for dreams...");
       try {
           const provider = new ethers.BrowserProvider(window.ethereum);
           const contract = new ethers.Contract(contractAddress, contractABI, provider);
-          const filter = contract.filters.Transfer(null, userAccount);
+          const filter = contract.filters.Transfer(null, account);
           const events = await contract.queryFilter(filter, 0, 'latest');
 
           if (events.length === 0) {
@@ -614,7 +608,7 @@ function App() {
                   const metadataUrl = tokenURI.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/');
                   const metadataResponse = await axios.get(metadataUrl);
                   if (metadataResponse.data && metadataResponse.data.description) {
-                    return { id: tokenId, name: metadataResponse.data.name, description: metadataResponse.data.description };
+                    return { id: tokenId, description: metadataResponse.data.description };
                   }
               } catch (e) { return null; }
           });
@@ -656,7 +650,7 @@ function App() {
                   const metadataUrl = tokenURI.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/');
                   const metadataResponse = await axios.get(metadataUrl);
                   if (metadataResponse.data && metadataResponse.data.description) {
-                    return { id: tokenId, name: metadataResponse.data.name, description: metadataResponse.data.description, owner: owner };
+                    return { id: tokenId, description: metadataResponse.data.description, owner: owner };
                   }
               } catch (e) { return null; }
           });
@@ -673,123 +667,81 @@ function App() {
       }
   };
 
-return (
-	<div className="min-h-screen bg-[#13110C] text-white">
-		{/* Header */}
-		<header className="bg-[#FFC700] py-4 px-8 flex justify-between items-center shadow-md">
-			<h1 className="text-3xl font-bold text-black tracking-tight">Dream Chain</h1>
-			{account ? (
-				<div className="text-sm font-semibold text-black bg-[#FFF7D3] px-4 py-2 rounded-md shadow">
-					Connected: {`${account.substring(0, 6)}...${account.substring(account.length - 4)}`}
-				</div>
-			) : (
-				<button
-					onClick={connectWallet}
-					className="font-semibold py-2 px-6 rounded-md transition-all duration-200 text-[#242428] bg-gradient-to-r from-[#FFF7D3] to-[#C8C3AE] hover:from-[#C8C3AE] hover:to-[#FFF7D3] shadow"
-				>
-					Connect
-				</button>
-			)}
-		</header>
+  return (
+    <div className="container">
+      <div className="mint-section">
+        <h1>🌙 DreamChain</h1>
+        <p>Immortalize your dreams on the blockchain.</p>
 
-		<div className="p-8">
-			{/* Tabs for My Dreams / Others' Dreams */}
-			<div className="flex space-x-4 mb-8">
-				<button
-					onClick={() => {
-						setView('my');
-						fetchMyDreams();
-					}}
-					className={`flex-1 py-3 px-6 rounded-md font-semibold transition-all duration-200 border-2 ${
-						view === 'my'
-							? 'bg-transparent border-[#00bfff] text-[#00bfff]'
-							: 'bg-[#242428] border-transparent text-gray-400 hover:text-white hover:bg-gray-700'
-					}`}
-				>
-					My Dreams
-				</button>
-				<button
-					onClick={() => {
-						setView('others');
-						fetchAllDreams();
-					}}
-					className={`flex-1 py-3 px-6 rounded-md font-semibold transition-all duration-200 border-2 ${
-						view === 'others'
-							? 'bg-transparent border-[#e94560] text-[#e94560]'
-							: 'bg-[#242428] border-transparent text-gray-400 hover:text-white hover:bg-gray-700'
-					}`}
-				>
-					Others' Dreams
-				</button>
-			</div>
+        {account ? (
+          <p className="wallet-info">Connected: {`${account.substring(0, 6)}...${account.substring(account.length - 4)}`}</p>
+        ) : (
+          <button onClick={connectWallet}>Connect Wallet</button>
+        )}
 
-			{/* Display Dreams based on view state */}
-			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-				{view === 'my' ? (
-					myDreams.length > 0 ? (
-						myDreams.map((dream) => (
-							<div key={dream.id} className="bg-[#242428] rounded-md p-6 border-l-4 border-[#00bfff]">
-								<h3 className="text-xl font-bold text-white mb-2">{dream.name}</h3>
-								<p className="text-gray-400">{dream.description}</p>
-							</div>
-						))
-					) : (
-						<p className="text-gray-400 col-span-full text-center">
-							{isFetching ? 'Fetching your dreams...' : account ? 'You have not minted any dreams yet.' : 'Please connect your wallet to see your dreams.'}
-						</p>
-					)
-				) : (
-					allDreams.length > 0 ? (
-						allDreams.map((dream) => (
-							<div key={dream.id} className="bg-[#242428] rounded-md p-6 border-l-4 border-[#e94560]">
-								<h3 className="text-xl font-bold text-white mb-2">{dream.name}</h3>
-								<p className="text-gray-400">{dream.description}</p>
-								<p className="text-sm text-gray-500 mt-2">By: {`${dream.owner.substring(0, 6)}...${dream.owner.substring(dream.owner.length - 4)}`}</p>
-							</div>
-						))
-					) : (
-						<p className="text-gray-400 col-span-full text-center">
-							{isFetchingAll ? 'Fetching all dreams...' : 'No public dreams found yet.'}
-						</p>
-					)
-				)}
-			</div>
+        <textarea
+          value={dream}
+          onChange={(e) => setDream(e.target.value)}
+          placeholder="Last night, I dreamt of a flying pizza that delivered tacos..."
+          rows="5"
+          disabled={!account || isLoading}
+        />
 
-			{/* Minting Section */}
-			<div className="bg-[#242428] p-8 rounded-lg">
-				<h2 className="text-3xl font-semibold mb-2">What's your Dream Today?</h2>
-				<p className="text-gray-400 mb-6">Immortalize your dreams on Dream Chain</p>
+        <button onClick={mintDreamNFT} disabled={!account || isLoading}>
+          {isLoading ? 'Minting...' : 'Mint as NFT'}
+        </button>
 
-				<input
-					type="text"
-					value={title}
-					onChange={(e) => setTitle(e.target.value)}
-					placeholder="Title"
-					className="w-full p-3 bg-black border border-gray-600 rounded-md mb-4 text-white placeholder-gray-500 focus:outline-none focus:border-[#FFC700]"
-					disabled={!account || isLoading}
-				/>
-				<textarea
-					value={dream}
-					onChange={(e) => setDream(e.target.value)}
-					placeholder="Description"
-					rows="5"
-					className="w-full p-3 bg-black border border-gray-600 rounded-md mb-6 text-white placeholder-gray-500 resize-y focus:outline-none focus:border-[#FFC700]"
-					disabled={!account || isLoading}
-				/>
+        <p className="message">{message}</p>
+      </div>
 
-				<button
-					onClick={mintDreamNFT}
-					disabled={!account || isLoading}
-					className="w-full font-bold py-3 rounded-md text-lg transition-transform duration-200 hover:scale-105 disabled:bg-gray-500 disabled:cursor-not-allowed bg-gradient-to-r from-[#FFD000] to-[#FF8800] hover:from-[#FF8800] hover:to-[#FFD000]"
-				>
-					{isLoading ? 'Processing...' : 'Go'}
-				</button>
+      <div className="gallery-container">
+        {/* --- PRIVATE GALLERY --- */}
+        <div className="dreams-gallery">
+          <h2>My Minted Dreams</h2>
+          <button onClick={fetchMyDreams} disabled={isFetching || !account}>
+              {isFetching ? 'Fetching...' : 'Fetch My Dreams'}
+          </button>
+          
+          {myDreams.length > 0 ? (
+              <ul>
+                  {myDreams.map(dream => (
+                      <li key={`my-${dream.id}`}>
+                          <p>"{dream.description}"</p>
+                      </li>
+                  ))}
+              </ul>
+          ) : (
+              <p className="no-dreams-message">
+                  {isFetching ? 'Searching...' : 'No dreams fetched yet.'}
+              </p>
+          )}
+        </div>
 
-				<p className="mt-4 text-sm text-gray-400 min-h-[20px] text-center">{message}</p>
-			</div>
-		</div>
-	</div>
-);
+        {/* --- PUBLIC GALLERY --- */}
+        <div className="dreams-gallery public-gallery">
+          <h2>Public Dream Gallery</h2>
+          <button onClick={fetchAllDreams} disabled={isFetchingAll}>
+              {isFetchingAll ? 'Fetching...' : 'Fetch All Dreams'}
+          </button>
+          
+          {allDreams.length > 0 ? (
+              <ul>
+                  {allDreams.map(dream => (
+                      <li key={`all-${dream.id}`}>
+                          <p>"{dream.description}"</p>
+                          <span>- Dreamt by: {`${dream.owner.substring(0, 6)}...${dream.owner.substring(dream.owner.length - 4)}`}</span>
+                      </li>
+                  ))}
+              </ul>
+          ) : (
+              <p className="no-dreams-message">
+                  {isFetchingAll ? 'Searching...' : 'No dreams fetched yet.'}
+              </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default App;
