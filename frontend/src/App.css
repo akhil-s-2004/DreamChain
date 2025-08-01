@@ -5,10 +5,10 @@ body {
   color: #e0e0e0;
   display: flex;
   justify-content: center;
-  align-items: flex-start; /* Align to top */
+  align-items: flex-start;
   min-height: 100vh;
   margin: 0;
-  padding: 2rem 0; /* Add some padding */
+  padding: 2rem 0;
 }
 
 .container {
@@ -18,7 +18,7 @@ body {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   text-align: center;
   width: 90%;
-  max-width: 600px; /* Increased width */
+  max-width: 800px; /* Increased width for two columns */
 }
 
 .mint-section {
@@ -59,7 +59,7 @@ button {
   font-weight: bold;
   cursor: pointer;
   transition: transform 0.2s, background-color 0.2s;
-  margin-top: 0.5rem; /* Added margin */
+  margin-top: 0.5rem;
 }
 
 button:hover:not(:disabled) {
@@ -87,13 +87,24 @@ button:disabled {
   word-break: break-all;
 }
 
-/* --- NEW STYLES FOR THE GALLERY --- */
-.dreams-gallery {
+/* --- GALLERY STYLES --- */
+.gallery-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
   margin-top: 2rem;
+}
+
+.dreams-gallery {
+  text-align: center;
 }
 
 .dreams-gallery h2 {
   color: #00bfff;
+}
+
+.public-gallery h2 {
+    color: #e94560; /* Different color for public gallery */
 }
 
 .dreams-gallery ul {
@@ -109,10 +120,31 @@ button:disabled {
   margin-bottom: 1rem;
   border-radius: 0 8px 8px 0;
   text-align: left;
-  font-style: italic;
+}
+
+.dreams-gallery li p {
+    font-style: italic;
+    margin: 0 0 0.5rem 0;
+}
+
+.public-gallery li {
+    border-left-color: #e94560;
+}
+
+.public-gallery li span {
+    font-size: 0.8rem;
+    font-style: normal;
+    color: #aaa;
 }
 
 .no-dreams-message {
     color: #aaa;
     margin-top: 1.5rem;
+}
+
+/* Responsive layout for smaller screens */
+@media (max-width: 768px) {
+    .gallery-container {
+        grid-template-columns: 1fr;
+    }
 }

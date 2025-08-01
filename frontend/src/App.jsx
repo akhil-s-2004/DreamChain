@@ -508,9 +508,11 @@ function App() {
   const [message, setMessage] = useState('Connect your wallet to begin.');
   const [isLoading, setIsLoading] = useState(false);
 
-  // New state for displaying dreams
+  // State for displaying dreams
   const [myDreams, setMyDreams] = useState([]);
   const [isFetching, setIsFetching] = useState(false);
+  const [allDreams, setAllDreams] = useState([]);
+  const [isFetchingAll, setIsFetchingAll] = useState(false);
 
   // Helper function to connect wallet
   const connectWallet = async () => {
@@ -543,7 +545,7 @@ function App() {
     setMessage('Uploading dream to IPFS via Pinata...');
 
     try {
-      // 1. Upload to IPFS using Pinata
+      // 1. Upload metadata to IPFS using Pinata
       const jsonData = {
         name: "A Dream",
         description: dream
@@ -581,32 +583,24 @@ function App() {
     }
   };
 
-  // --- NEW AND IMPROVED FUNCTION TO FETCH YOUR DREAMS ---
+  // --- FUNCTION TO FETCH YOUR DREAMS (PRIVATE) ---
   const fetchMyDreams = async () => {
-      if (!account) {
-          setMessage("Please connect your wallet to see your dreams.");
-          return;
-      }
+      if (!account) return;
       setIsFetching(true);
       setMyDreams([]); 
       setMessage("Searching your transaction history for dreams...");
       try {
           const provider = new ethers.BrowserProvider(window.ethereum);
           const contract = new ethers.Contract(contractAddress, contractABI, provider);
-
-          // Create a filter to find all 'Transfer' events where the 'to' address is the current user
           const filter = contract.filters.Transfer(null, account);
-          
-          // Query the blockchain for these historical events
           const events = await contract.queryFilter(filter, 0, 'latest');
 
           if (events.length === 0) {
-              setMessage("Could not find any dreams minted to this wallet. Mint one first!");
+              setMessage("Could not find any dreams minted to this wallet.");
               setIsFetching(false);
               return;
           }
 
-          // Fetch metadata for each owned token in parallel
           const dreamsPromises = events.map(async (event) => {
               const tokenId = event.args.tokenId.toString();
               try {
@@ -614,35 +608,64 @@ function App() {
                   const metadataUrl = tokenURI.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/');
                   const metadataResponse = await axios.get(metadataUrl);
                   if (metadataResponse.data && metadataResponse.data.description) {
-                    return {
-                        id: tokenId,
-                        description: metadataResponse.data.description
-                    };
+                    return { id: tokenId, description: metadataResponse.data.description };
                   }
-              } catch (e) {
-                  console.error(`Could not fetch metadata for token ${tokenId}`, e);
-                  return null; // Return null for failed fetches
-              }
+              } catch (e) { return null; }
           });
 
-          const dreams = (await Promise.all(dreamsPromises)).filter(dream => dream !== null);
-          
+          const dreams = (await Promise.all(dreamsPromises)).filter(d => d !== null);
           setMyDreams(dreams);
-
-          if (dreams.length > 0) {
-            setMessage(`Found ${dreams.length} dream(s)!`);
-          } else {
-            setMessage("Found your mint transactions, but could not load dream data from IPFS. Please try again.");
-          }
-
+          setMessage(dreams.length > 0 ? `Found ${dreams.length} dream(s)!` : "Could not load dream data.");
       } catch (error) {
           console.error("Failed to fetch dreams:", error);
-          setMessage("An error occurred while fetching dreams. See console.");
+          setMessage("An error occurred while fetching dreams.");
       } finally {
           setIsFetching(false);
       }
   };
 
+  // --- FUNCTION TO FETCH ALL DREAMS (PUBLIC) ---
+  const fetchAllDreams = async () => {
+      setIsFetchingAll(true);
+      setAllDreams([]);
+      setMessage("Searching the blockchain for all dreams...");
+      try {
+          const provider = new ethers.BrowserProvider(window.ethereum);
+          const contract = new ethers.Contract(contractAddress, contractABI, provider);
+          
+          const filter = contract.filters.Transfer(ethers.ZeroAddress, null);
+          const events = await contract.queryFilter(filter, 0, 'latest');
+
+          if (events.length === 0) {
+              setMessage("No dreams have been minted on this contract yet.");
+              setIsFetchingAll(false);
+              return;
+          }
+
+          const dreamsPromises = events.map(async (event) => {
+              const tokenId = event.args.tokenId.toString();
+              const owner = event.args.to;
+              try {
+                  const tokenURI = await contract.tokenURI(tokenId);
+                  const metadataUrl = tokenURI.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/');
+                  const metadataResponse = await axios.get(metadataUrl);
+                  if (metadataResponse.data && metadataResponse.data.description) {
+                    return { id: tokenId, description: metadataResponse.data.description, owner: owner };
+                  }
+              } catch (e) { return null; }
+          });
+
+          const dreams = (await Promise.all(dreamsPromises)).filter(d => d !== null);
+          setAllDreams(dreams);
+          setMessage(dreams.length > 0 ? `Found ${dreams.length} total dream(s)!` : "Could not load any dream data.");
+
+      } catch (error) {
+          console.error("Failed to fetch all dreams:", error);
+          setMessage("An error occurred while fetching all dreams.");
+      } finally {
+          setIsFetchingAll(false);
+      }
+  };
 
   return (
     <div className="container">
@@ -671,24 +694,51 @@ function App() {
         <p className="message">{message}</p>
       </div>
 
-      {/* --- NEW SECTION TO DISPLAY DREAMS --- */}
-      <div className="dreams-gallery">
-        <h2>My Minted Dreams</h2>
-        <button onClick={fetchMyDreams} disabled={isFetching || !account}>
-            {isFetching ? 'Fetching...' : 'Fetch My Dreams'}
-        </button>
-        
-        {myDreams.length > 0 ? (
-            <ul>
-                {myDreams.map(dream => (
-                    <li key={dream.id}>"{dream.description}"</li>
-                ))}
-            </ul>
-        ) : (
-            <p className="no-dreams-message">
-                {isFetching ? 'Searching...' : 'No dreams fetched yet. Click the button above!'}
-            </p>
-        )}
+      <div className="gallery-container">
+        {/* --- PRIVATE GALLERY --- */}
+        <div className="dreams-gallery">
+          <h2>My Minted Dreams</h2>
+          <button onClick={fetchMyDreams} disabled={isFetching || !account}>
+              {isFetching ? 'Fetching...' : 'Fetch My Dreams'}
+          </button>
+          
+          {myDreams.length > 0 ? (
+              <ul>
+                  {myDreams.map(dream => (
+                      <li key={`my-${dream.id}`}>
+                          <p>"{dream.description}"</p>
+                      </li>
+                  ))}
+              </ul>
+          ) : (
+              <p className="no-dreams-message">
+                  {isFetching ? 'Searching...' : 'No dreams fetched yet.'}
+              </p>
+          )}
+        </div>
+
+        {/* --- PUBLIC GALLERY --- */}
+        <div className="dreams-gallery public-gallery">
+          <h2>Public Dream Gallery</h2>
+          <button onClick={fetchAllDreams} disabled={isFetchingAll}>
+              {isFetchingAll ? 'Fetching...' : 'Fetch All Dreams'}
+          </button>
+          
+          {allDreams.length > 0 ? (
+              <ul>
+                  {allDreams.map(dream => (
+                      <li key={`all-${dream.id}`}>
+                          <p>"{dream.description}"</p>
+                          <span>- Dreamt by: {`${dream.owner.substring(0, 6)}...${dream.owner.substring(dream.owner.length - 4)}`}</span>
+                      </li>
+                  ))}
+              </ul>
+          ) : (
+              <p className="no-dreams-message">
+                  {isFetchingAll ? 'Searching...' : 'No dreams fetched yet.'}
+              </p>
+          )}
+        </div>
       </div>
     </div>
   );
