@@ -524,63 +524,50 @@ function App() {
   }, [account]);
 
   const connectWallet = async () => {
+  if (!window.ethereum) {
+    setMessage("MetaMask not installed.");
+    return;
+  }
+
   try {
-    if (window.ethereum) {
-      // Request account access
-      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-      setAccount(accounts[0]);
+    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    setAccount(accounts[0]);
 
-      // Sepolia chainId (hex): 0xaa36a7
-      const targetChainId = import.meta.env.VITE_CHAIN_ID || "0xaa36a7";
-
-      // Get current chainId
-      const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
-
-      // If not Sepolia, try switching
-      if (currentChainId !== targetChainId) {
-        try {
+    const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
+    if (currentChainId !== "0xaa36a7") {
+      try {
+        await window.ethereum.request({
+          method: "wallet_switchEthereumChain",
+          params: [{ chainId: "0xaa36a7" }],
+        });
+        setMessage("Switched to Sepolia!");
+      } catch (switchError) {
+        if (switchError.code === 4902) {
           await window.ethereum.request({
-            method: 'wallet_switchEthereumChain',
-            params: [{ chainId: targetChainId }],
+            method: "wallet_addEthereumChain",
+            params: [{
+              chainId: "0xaa36a7",
+              chainName: "Sepolia Testnet",
+              rpcUrls: ["https://rpc.sepolia.org"],
+              nativeCurrency: {
+                name: "SepoliaETH",
+                symbol: "ETH",
+                decimals: 18,
+              },
+              blockExplorerUrls: ["https://sepolia.etherscan.io"],
+            }],
           });
-        } catch (switchError) {
-          // If Sepolia not added, try adding it
-          if (switchError.code === 4902) {
-            try {
-              await window.ethereum.request({
-                method: 'wallet_addEthereumChain',
-                params: [{
-                  chainId: targetChainId,
-                  chainName: 'Sepolia Testnet',
-                  rpcUrls: ['https://rpc.sepolia.org'],
-                  nativeCurrency: {
-                    name: 'SepoliaETH',
-                    symbol: 'ETH',
-                    decimals: 18,
-                  },
-                  blockExplorerUrls: ['https://sepolia.etherscan.io'],
-                }],
-              });
-            } catch (addError) {
-              console.error("Failed to add Sepolia network", addError);
-              setMessage('Please add Sepolia network to MetaMask manually.');
-              return;
-            }
-          } else {
-            console.error("Failed to switch network", switchError);
-            setMessage('Failed to switch to Sepolia network.');
-            return;
-          }
+        } else {
+          console.error("Switch error:", switchError);
+          setMessage("Switch failed.");
         }
       }
-
-      setMessage('Connected to Sepolia! Write your dream and mint it as an NFT!');
     } else {
-      setMessage('MetaMask is not installed.');
+      setMessage("Connected to Sepolia!");
     }
-  } catch (error) {
-    console.error('Error connecting to MetaMask', error);
-    setMessage('Failed to connect wallet.');
+  } catch (err) {
+    console.error("MetaMask connect error", err);
+    setMessage("Failed to connect wallet.");
   }
 };
 
