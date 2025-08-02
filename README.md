@@ -25,18 +25,18 @@ DreamChain is a decentralized web application that enables users to record and p
 ## Technical Details
 ### Technologies/Components Used
 For Software:
-- [Languages used]
-- [Frameworks used]
-- [Libraries used]
-- [Tools used]
+- Languages used: JavaScript, Solidity(For smart contracts)
+- Frameworks used: ReactJS
+- Libraries used: Ethers.js, IPFS(To store dreams in decentralised way)
+- Tools used: MetaMask(Wallet integration), GitHub(version control), Pinata(For storing files on IPFS), Vercel(For frontend deployment)
 
 ### Implementation
 For Software:
 # Installation
-[commands]
+npm install
 
 # Run
-[commands]
+npm run dev
 
 ### Project Documentation
 For Software:
