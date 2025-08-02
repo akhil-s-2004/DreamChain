@@ -33,14 +33,14 @@ For Software:
 - Libraries used: Ethers.js, IPFS(To store dreams in decentralised way)
 - Tools used: MetaMask(Wallet integration), GitHub(version control), Pinata(For storing files on IPFS), Vercel(For frontend deployment)
 
-### Concept Summary
+### Implementation
+For Software:
 To implement this vision, we used the Ethereum blockchain and developed smart contracts using Solidity, which were written and deployed through Remix IDE. 
 For safe experimentation, the contracts were deployed on the Sepolia testnet, eliminating the need for real funds during development and testing. 
 Each dream entry is tokenized as a unique NFT, with associated metadata stored via IPFS to maintain a decentralized and censorship-resistant structure.
 The frontend of the platform was built using ReactJS, which connects to the blockchain using Ethers.js, enabling users to input, mint, and view dream NFTs directly from their browser.
 
-### Implementation
-For Software:
+
 # Installation
 npm install
 
