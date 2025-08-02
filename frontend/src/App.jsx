@@ -501,14 +501,12 @@ const contractABI = [
 	}
 ];
 // Example: const contractABI = [{"inputs": ..., "name": ...}, ...];
-
 function App() {
   const [dream, setDream] = useState('');
   const [title, setTitle] = useState('');
   const [account, setAccount] = useState('');
   const [message, setMessage] = useState('Connect your wallet to begin.');
   const [isLoading, setIsLoading] = useState(false);
-  const [view, setView] = useState('others');
 
   const [myDreams, setMyDreams] = useState([]);
   const [isFetching, setIsFetching] = useState(false);
@@ -521,13 +519,9 @@ function App() {
 
   useEffect(() => {
     if (account) {
-      if (view === 'my') {
-        fetchMyDreams();
-      } else {
-        fetchAllDreams();
-      }
+      fetchMyDreams();
     }
-  }, [view, account]);
+  }, [account]);
 
   const connectWallet = async () => {
     try {
@@ -665,6 +659,23 @@ function App() {
     </div>
   );
 
+  const PublicDreamsTicker = ({ dreams }) => {
+    const doubledDreams = dreams.length > 0 ? [...dreams, ...dreams] : [];
+    return (
+      <div className="ticker-wrap">
+        <div className="ticker-move">
+          {doubledDreams.map((dream, index) => (
+            <div key={`${dream.id}-${index}`} className="ticker-item">
+              <h4 className="ticker-title">{dream.name || 'Untitled Dream'}</h4>
+              <p className="ticker-description">"{dream.description}"</p>
+              <p className="ticker-owner">By: {`${dream.owner.substring(0, 6)}...`}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="app-container">
       <header className="app-header">
@@ -681,10 +692,34 @@ function App() {
       </header>
 
       <main className="main-content">
+        
+        <div className="ticker-section">
+            <h2>Recent Public Dreams</h2>
+            {isFetchingAll ? <p>Loading recent dreams...</p> : <PublicDreamsTicker dreams={allDreams} />}
+        </div>
+
+        {/* --- NEW HORIZONTAL SCROLL FOR MY DREAMS --- */}
+        <div className="my-dreams-section">
+          <h2>My Minted Dreams</h2>
+          <div className="my-dreams-scroll-container">
+            {isFetching ? <p className="loading-text">Fetching your dreams...</p> :
+             myDreams.length > 0 ? (
+                myDreams.map(d => (
+                  <div key={d.id} className="my-dream-card">
+                    <h3 className="dream-title">{d.name || 'Untitled Dream'}</h3>
+                    <p className="dream-description">{d.description}</p>
+                  </div>
+                ))
+             ) : (
+              <p className="loading-text">{account ? "You haven't minted any dreams yet." : "Connect wallet to see your dreams."}</p>
+             )
+            }
+          </div>
+        </div>
+
         <div className="minting-section">
           <h2>Immortalize a New Dream</h2>
           <p className="subtitle">Once minted, your dream is permanently stored on the blockchain.</p>
-
           <div className="input-group">
             <input
               type="text"
@@ -701,7 +736,6 @@ function App() {
               disabled={!account || isLoading}
             />
           </div>
-
           <button
             onClick={mintDreamNFT}
             disabled={!account || isLoading}
@@ -712,34 +746,18 @@ function App() {
           <p className="message-box">{message}</p>
         </div>
 
-        <div className="gallery-section">
-          <div className="view-switcher">
-            <button
-              onClick={() => setView('others')}
-              className={`tab-button ${view === 'others' ? 'active-tab' : ''}`}
-            >
-              Public Gallery
-            </button>
-            <button
-              onClick={() => setView('my')}
-              className={`tab-button ${view === 'my' ? 'active-tab' : ''}`}
-            >
-              My Dreams
-            </button>
-          </div>
+        
 
+
+        {/* <div className="gallery-section">
+          <h2>Public Dream Gallery</h2>
           <div className="dreams-grid">
-            {view === 'my' ? (
-              isFetching ? <p className="loading-text">Fetching your dreams...</p> : 
-              myDreams.length > 0 ? myDreams.map(d => <DreamCard key={d.id} dream={d} isPublic={false} />) : 
-              <p className="loading-text">{account ? "You haven't minted any dreams yet." : "Connect wallet to see your dreams."}</p>
-            ) : (
-              isFetchingAll ? <p className="loading-text">Fetching all dreams...</p> : 
-              allDreams.length > 0 ? allDreams.map(d => <DreamCard key={d.id} dream={d} isPublic={true} />) : 
-              <p className="loading-text">No public dreams have been minted yet.</p>
-            )}
+            {isFetchingAll ? <p className="loading-text">Fetching all dreams...</p> : 
+             allDreams.length > 0 ? allDreams.map(d => <DreamCard key={d.id} dream={d} isPublic={true} />) : 
+             <p className="loading-text">No public dreams have been minted yet.</p>
+            }
           </div>
-        </div>
+        </div> */}
       </main>
     </div>
   );

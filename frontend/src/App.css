@@ -1,14 +1,15 @@
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
-    Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  /* font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+    Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; */
+    font-family: poppins, sans-serif;
   background-color: #0a0a0a;
   color: #e0e0e0;
 }
 
 .app-container {
-  max-width: 1200px;
-  margin: 0 auto;
+  max-width: full-width;
+  margin: 0;
   padding: 0 1rem;
 }
 
@@ -56,6 +57,63 @@ body {
 /* Main Content Layout */
 .main-content {
   padding: 2rem 0;
+}
+
+/* Ticker Styles */
+.ticker-section {
+    margin-bottom: 2rem;
+}
+.ticker-section h2 {
+    text-align: center;
+    color: #ffc700;
+    margin-bottom: 1rem;
+}
+.ticker-wrap {
+    width: 100%;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+.ticker-move {
+    display: inline-block;
+    white-space: nowrap;
+    animation: ticker 40s linear infinite;
+}
+.ticker-wrap:hover .ticker-move {
+    animation-play-state: paused;
+}
+.ticker-item {
+    display: inline-block;
+    padding: 1rem 1.5rem;
+    margin: 0 1rem;
+    width: 300px;
+    background-color: #242428;
+    border-radius: 12px;
+    border: 2px solid #ffc700;
+}
+.ticker-title {
+    font-weight: bold;
+    color: #fff;
+    margin: 0 0 0.5rem 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.ticker-description {
+    font-size: 0.9rem;
+    color: #ccc;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin: 0 0 0.5rem 0;
+}
+.ticker-owner {
+    font-size: 0.8rem;
+    color: #888;
+    margin: 0;
+}
+@keyframes ticker {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
 }
 
 /* Minting Section Styles */
@@ -113,8 +171,9 @@ body {
   cursor: pointer;
   margin-top: 1.5rem;
 }
-.mint-button:hover:not(:disabled) {
+.mint-button:hover{
   transform: scale(1.02);
+  background-image: linear-gradient(to right, #ff8800, #ffd000);
 }
 .mint-button:disabled {
   background-image: none;
@@ -130,38 +189,52 @@ body {
   text-align: center;
 }
 
+/* --- NEW MY DREAMS HORIZONTAL SCROLL STYLES --- */
+.my-dreams-section {
+    margin-bottom: 3rem;
+}
+.my-dreams-section h2 {
+    text-align: center;
+    color: #00bfff;
+    margin-bottom: 1.5rem;
+}
+.my-dreams-scroll-container {
+    display: flex;
+    overflow-x: auto;
+    padding-bottom: 1.5rem; /* Space for scrollbar */
+    gap: 1.5rem;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    scrollbar-width: thin;
+    scrollbar-color: #444 #111;
+}
+/* Hide scrollbar for a cleaner look */
+.my-dreams-scroll-container::-webkit-scrollbar {
+    height: 8px;
+}
+.my-dreams-scroll-container::-webkit-scrollbar-thumb {
+    background: #444;
+    border-radius: 4px;
+}
+.my-dream-card {
+    flex: 0 0 350px; /* Don't shrink, don't grow, base width 350px */
+    background-color: #242428;
+    border-radius: 12px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 0 25px rgba(128, 128, 128, 0.1);
+    border: 1px solid #333;
+}
+
 /* Galleries Section */
-.view-switcher {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 2rem;
+.gallery-section {
+  margin-top: 2rem;
 }
-
-.tab-button {
-  flex: 1;
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
-  font-weight: 600;
-  transition: all 0.2s;
-  border: 2px solid #242428;
-  background-color: #242428;
-  color: #a0a0a0;
-  cursor: pointer;
+.gallery-section h2 {
+    text-align: center;
+    color: #e94560;
+    margin-bottom: 1.5rem;
 }
-.tab-button:hover {
-  color: #fff;
-  background-color: #333;
-}
-.tab-button.active-tab {
-  background-color: transparent;
-  color: #00bfff;
-  border-color: #00bfff;
-}
-.view-switcher .tab-button:last-child.active-tab {
-  color: #e94560;
-  border-color: #e94560;
-}
-
 .dreams-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -174,13 +247,10 @@ body {
   padding: 1.5rem;
   display: flex;
   flex-direction: column;
-  border-left: 4px solid;
+  border-left: 4px solid #e94560;
 }
 
-.my-dream { border-color: #00bfff; }
-.public-dream { border-color: #e94560; }
-
-.dream-card .dream-title {
+.dream-card .dream-title, .my-dream-card .dream-title {
   margin: 0 0 0.5rem 0;
   font-size: 1.25rem;
   font-weight: bold;
@@ -189,7 +259,7 @@ body {
   text-overflow: ellipsis;
 }
 
-.dream-card .dream-description {
+.dream-card .dream-description, .my-dream-card .dream-description {
   flex-grow: 1;
   height: 100px;
   overflow-y: auto;
@@ -208,6 +278,7 @@ body {
 
 .loading-text {
   grid-column: 1 / -1;
+  width: 100%;
   text-align: center;
   color: #a0a0a0;
   font-size: 1.2rem;
